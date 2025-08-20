@@ -1,0 +1,81 @@
+<div class="container-fluid">
+
+  <!-- Header Banner -->
+  <div class="d-flex justify-content-between align-items-center p-3 bg-danger text-white">
+    <h3 class="mb-0">MiniML - Predictive Quality Control</h3>
+    <img src="assets/abb-logo.png" alt="ABB Logo" height="40">
+  </div>
+  <div class="bg-light text-danger px-3 py-1 small">Simplified Frontend</div>
+
+  <!-- Progress Navigation -->
+  <ul class="nav nav-pills justify-content-center my-3">
+    <li class="nav-item">
+      <a class="nav-link active">1 Upload Dataset</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link disabled">2 Date Ranges</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link disabled">3 Model Training</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link disabled">4 Simulation</a>
+    </li>
+  </ul>
+
+  <!-- Upload Section -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Upload Dataset <span class="badge bg-primary float-end">Step 1 of 4</span></h5>
+
+    <!-- File Upload Area -->
+    <div class="border border-2 border-dashed rounded p-4 my-3 text-center bg-light">
+      <p class="mb-1">Click to select a CSV file or drag and drop</p>
+      <input type="file" accept=".csv" (change)="onFileSelected($event)" class="form-control mt-2">
+    </div>
+
+    <!-- File Metadata Cards -->
+    <div class="row g-3 mt-3" *ngIf="fileName">
+      <div class="col-md-2">
+        <div class="info-card">
+          <p class="small mb-1">CSV File</p>
+          <a href="#" class="fw-bold">{{ fileName }}</a>
+          <div class="text-muted small">{{ fileSize }} KB</div>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="info-card">
+          <p class="small mb-1">Records</p>
+          <h5 class="fw-bold text-primary">{{ metadata.records }}</h5>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="info-card">
+          <p class="small mb-1">Columns</p>
+          <h5 class="fw-bold text-primary">{{ metadata.columns }}</h5>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div class="info-card">
+          <p class="small mb-1">Pass Rate</p>
+          <h5 class="fw-bold text-success">{{ metadata.passRate }}%</h5>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-card">
+          <p class="small mb-1">Date Range</p>
+          <h6 class="fw-bold text-primary">{{ metadata.startDate }} <span class="text-muted">to</span> {{ metadata.endDate }}</h6>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Button -->
+    <div class="text-end mt-4">
+      <button class="btn btn-primary" [disabled]="!fileName">Next</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer bg-danger text-white text-center py-2">
+    <small>Engineered to Outrun | MiniML POC</small>
+  </div>
+</div>
