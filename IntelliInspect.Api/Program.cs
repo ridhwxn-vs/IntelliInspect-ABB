@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
@@ -15,14 +12,12 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-app.MapPost("/upload-dataset", async ([FromForm] IFormFile file) =>
+app.MapPost("/upload-dataset", () =>
 {
-    if (file == null || file.Length == 0)
-        return Results.BadRequest("No file uploaded.");
-
+    // Ignore the file, just send mock response
     var result = new
     {
-        FileName = file.FileName,
+        FileName = "mock.csv",
         Records = 14704,
         Columns = 5,
         PassRate = 70.5,

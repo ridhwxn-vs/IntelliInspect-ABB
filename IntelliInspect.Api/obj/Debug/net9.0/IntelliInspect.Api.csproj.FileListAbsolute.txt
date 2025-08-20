@@ -33,3 +33,4 @@ D:\Documents\Ridhwan\Placement Prep\ABB\IntelliInspect.Api\obj\Debug\net9.0\ref\
 D:\Documents\Ridhwan\Placement Prep\ABB\Intelliinspect.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
 D:\Documents\Ridhwan\Placement Prep\ABB\Intelliinspect.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 D:\Documents\Ridhwan\Placement Prep\ABB\Intelliinspect.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+D:\Documents\Ridhwan\Placement Prep\ABB\Intelliinspect.Api\obj\Debug\net9.0\IntelliInspect.Api.sourcelink.json

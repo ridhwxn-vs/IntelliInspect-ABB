@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../../api.service';   
+import { ApiService } from '../../api.service';
 
 @Component({
   selector: 'app-dataupload',
@@ -20,12 +20,12 @@ export class DatauploadComponent {
     const file: File = event.target.files[0];
     if (file) {
       this.fileName = file.name;
-      this.fileSize = +(file.size / 1024).toFixed(1);
+      this.fileSize = +(file.size / 1024).toFixed(1); // KB
 
       this.api.uploadDataset(file).subscribe({
         next: (res) => {
           console.log('API Response:', res);
-          this.metadata = res;   
+          this.metadata = res;
         },
         error: (err) => {
           console.error('Upload failed:', err);
