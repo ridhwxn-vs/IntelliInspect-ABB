@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http.Features;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
@@ -8,13 +10,17 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = long.MaxValue;
+});
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
 
 app.MapPost("/upload-dataset", () =>
 {
-    // Ignore the file, just send mock response
     var result = new
     {
         FileName = "mock.csv",

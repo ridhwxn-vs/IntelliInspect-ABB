@@ -70,7 +70,11 @@
 
     <!-- Next Button -->
     <div class="text-end mt-4">
-      <button class="btn btn-primary" [disabled]="!fileName">Next</button>
+      <button class="btn btn-primary" 
+              [disabled]="!fileName" 
+              [routerLink]="['/daterange']">
+        Next
+      </button>
     </div>
   </div>
 

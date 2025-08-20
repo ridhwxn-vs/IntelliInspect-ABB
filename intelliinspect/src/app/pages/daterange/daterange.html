@@ -1,1 +1,121 @@
-<p>daterange works!</p>
+<div class="container-fluid">
+
+  <!-- Header Banner -->
+  <div class="d-flex justify-content-between align-items-center p-3 bg-danger text-white">
+    <h3 class="mb-0">MiniML - Predictive Quality Control</h3>
+    <img src="assets/abb-logo.png" alt="ABB Logo" height="40">
+  </div>
+  <div class="bg-light text-danger px-3 py-1 small">Simplified Frontend</div>
+
+  <!-- Progress Navigation -->
+  <ul class="nav nav-pills justify-content-center my-3">
+    <li class="nav-item">
+      <a class="nav-link disabled">1 Upload Dataset</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active">2 Date Ranges</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link disabled">3 Model Training</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link disabled">4 Simulation</a>
+    </li>
+  </ul>
+
+  <!-- Date Range Section -->
+  <div class="card shadow-sm p-4 mb-4">
+    <h5>Date Range Selection <span class="badge bg-primary float-end">Step 2 of 4</span></h5>
+
+    <div class="row g-4 mt-3">
+      <!-- Training Period -->
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+          <h6 class="text-primary">Training Period</h6>
+          <label class="form-label small mb-1">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="trainStart">
+          <label class="form-label small mt-2 mb-1">End Date</label>
+          <input type="date" class="form-control" [(ngModel)]="trainEnd">
+        </div>
+      </div>
+      <!-- Testing Period -->
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+          <h6 class="text-warning">Testing Period</h6>
+          <label class="form-label small mb-1">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="testStart">
+          <label class="form-label small mt-2 mb-1">End Date</label>
+          <input type="date" class="form-control" [(ngModel)]="testEnd">
+        </div>
+      </div>
+      <!-- Simulation Period -->
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+          <h6 class="text-info">Simulation Period</h6>
+          <label class="form-label small mb-1">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="simStart">
+          <label class="form-label small mt-2 mb-1">End Date</label>
+          <input type="date" class="form-control" [(ngModel)]="simEnd">
+        </div>
+      </div>
+    </div>
+
+    <!-- Validation Message -->
+    <div class="alert alert-success mt-4" *ngIf="rangesValid">
+      ✔ Date ranges validated successfully!
+    </div>
+
+    <!-- Duration Summary Cards -->
+    <div class="row text-center g-3 mt-2" *ngIf="rangesValid">
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+          <h6 class="text-primary mb-0">Training Period</h6>
+          <p class="fw-bold">{{ trainDuration }} days</p>
+          <small>{{ trainStart }} to {{ trainEnd }}</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+          <h6 class="text-warning mb-0">Testing Period</h6>
+          <p class="fw-bold">{{ testDuration }} days</p>
+          <small>{{ testStart }} to {{ testEnd }}</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+          <h6 class="text-info mb-0">Simulation Period</h6>
+          <p class="fw-bold">{{ simDuration }} days</p>
+          <small>{{ simStart }} to {{ simEnd }}</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bar Chart Placeholder -->
+    <div class="card mt-4 shadow-sm">
+      <div class="card-body">
+        <h6 class="mb-3">Selected Date Ranges Summary</h6>
+        <!-- Bar Chart -->
+            <div class="card mt-4 shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-3">Selected Date Ranges Summary</h6>
+                <canvas id="dateRangeChart"></canvas>
+            </div>
+            </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-between mt-4 mb-3">
+      <button class="btn btn-outline-primary" (click)="validateRanges()">Validate Ranges</button>
+      <button class="btn btn-primary" 
+              [disabled]="!rangesValid" 
+              [routerLink]="['/modeltraining']">
+        Next
+      </button>
+    </div>
+
+  <!-- Footer -->
+  <div class="footer bg-danger text-white text-center py-2">
+    <small>Engineered to Outrun | MiniML POC</small>
+  </div>
+</div>

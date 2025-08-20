@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../api.service';
+import { RouterModule } from '@angular/router'; 
 
 @Component({
   selector: 'app-dataupload',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule,RouterModule],
   templateUrl: './dataupload.html',
   styleUrls: ['./dataupload.css']
 })
