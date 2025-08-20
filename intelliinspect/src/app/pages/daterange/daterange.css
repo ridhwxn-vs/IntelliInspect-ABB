@@ -1,3 +1,4 @@
+/* ---------- Header Banner (KEEP AS IS) ---------- */
 .header-banner {
   background: linear-gradient(
     90deg,
@@ -16,4 +17,155 @@
 
 .header-banner img {
   height: 120px;
+}
+
+/* ---------- Main Content Wrapper ---------- */
+.main-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px;
+}
+
+/* Standard font for variable text */
+.var-text {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Noto Sans", sans-serif;
+}
+
+/* ---------- Stepper ---------- */
+.stepper-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.step {
+  text-align: center;
+  flex: 1;
+  position: relative;
+  padding: 10px 0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  margin: 0 auto 6px auto;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background-color: #f0f0f0;
+  color: #666;
+  font-weight: bold;
+}
+
+.step-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.step.completed .step-number {
+  border-color: #28a745;
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.step.completed .step-label {
+  color: #155724;
+  font-weight: 600;
+}
+
+.step.active .step-number {
+  border-color: #28a745;
+  background-color: #c3e6cb;
+  color: #155724;
+}
+
+.step.active .step-label {
+  color: #155724;
+  font-weight: 600;
+}
+
+.step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -50%;
+  width: 100%;
+  height: 4px;
+  background-color: #ccc;
+  z-index: -1;
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+
+.step.completed:not(:last-child)::after {
+  background-color: #28a745;
+}
+
+/* ---------- Cards & Sections ---------- */
+.section-card,
+.range-card,
+.chart-card,
+.metric-chip {
+  border-radius: 16px;
+  border: 1px solid #edf1f7;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
+  background: #fff;
+}
+
+.section-card { padding: 24px; }
+.range-card { padding: 16px; height: 100%; }
+.range-card h6 { margin-bottom: 8px; }
+
+h5.section-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* ---------- Success Alert ---------- */
+.alert-success {
+  border-radius: 12px;
+  border: 1px solid #d1fadf;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* ---------- Duration Chips ---------- */
+.metric-chip {
+  padding: 14px 16px;
+  text-align: center;
+}
+.metric-chip h6 { margin: 0; }
+.metric-chip p { margin: 6px 0 2px; }
+
+/* ---------- Chart Card ---------- */
+.chart-card {
+  border-color: #cfe2ff;
+}
+.chart-card .card-header {
+  border-bottom: 1px solid #e6efff;
+  background: #f7faff;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 10px 14px;
+}
+.chart-card .card-body { padding: 16px; }
+
+/* ---------- Buttons ---------- */
+.actions {
+  gap: 12px;
+}
+.btn-validate {
+  min-width: 180px;
+}
+.btn-next {
+  min-width: 120px;
+}
+
+/* ---------- Responsive tweaks ---------- */
+@media (max-width: 576px) {
+  .step:not(:last-child)::after { width: 28px; }
 }

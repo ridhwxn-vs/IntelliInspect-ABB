@@ -5,81 +5,127 @@
     <h3 class="mb-0">MiniML - Predictive Quality Control</h3>
     <img src="abb-logo.png" alt="ABB Logo" height="60">
   </div>
-  <div class="bg-light text-danger px-3 py-1 small">Simplified Frontend</div>
 
-  <!-- Progress Navigation -->
-  <ul class="nav nav-pills justify-content-center my-3">
-    <li class="nav-item">
-      <a class="nav-link active">1 Upload Dataset</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link disabled">2 Date Ranges</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link disabled">3 Model Training</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link disabled">4 Simulation</a>
-    </li>
-  </ul>
+  <div class="main-content">
+
+  <!-- Stepper Navigation -->
+  <div class="stepper-container d-flex justify-content-between align-items-center my-3">
+    <div class="step active">
+      <div class="step-number">1</div>
+      <div class="step-label">Upload Dataset</div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-label">Date Ranges</div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-label">Model Training</div>
+    </div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-label">Simulation</div>
+    </div>
+  </div>
 
   <!-- Upload Section -->
-  <div class="card shadow-sm p-4 mb-4">
-    <h5>Upload Dataset <span class="badge bg-primary float-end">Step 1 of 4</span></h5>
-
-    <!-- File Upload Area -->
-    <div class="border border-2 border-dashed rounded p-4 my-3 text-center bg-light">
-      <p class="mb-1">Click to select a CSV file or drag and drop</p>
-      <input type="file" accept=".csv" (change)="onFileSelected($event)" class="form-control mt-2">
+  <div class="card panel-card shadow-sm mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <h5 class="mb-0">Upload Dataset</h5>
+      <span class="badge bg-primary">Step 1 of 4</span>
     </div>
 
-    <!-- File Metadata Cards -->
-    <div class="row g-3 mt-3" *ngIf="fileName">
-      <div class="col-md-2">
-        <div class="info-card">
-          <p class="small mb-1">CSV File</p>
-          <a href="#" class="fw-bold">{{ fileName }}</a>
-          <div class="text-muted small">{{ fileSize }} KB</div>
-        </div>
+    <div class="card-body">
+      <!-- File Upload Area -->
+      <div class="dropzone text-center p-4">
+        <p class="mb-1">Click to select a CSV file or drag and drop</p>
+        <input
+          type="file"
+          accept=".csv"
+          (change)="onFileSelected($event)"
+          class="form-control mt-2"
+        />
       </div>
-      <div class="col-md-2">
-        <div class="info-card">
-          <p class="small mb-1">Records</p>
-          <h5 class="fw-bold text-primary">{{ metadata.records }}</h5>
-        </div>
-      </div>
-      <div class="col-md-2">
-        <div class="info-card">
-          <p class="small mb-1">Columns</p>
-          <h5 class="fw-bold text-primary">{{ metadata.columns }}</h5>
-        </div>
-      </div>
-      <div class="col-md-2">
-        <div class="info-card">
-          <p class="small mb-1">Pass Rate</p>
-          <h5 class="fw-bold text-success">{{ metadata.passRate }}%</h5>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="info-card">
-          <p class="small mb-1">Date Range</p>
-          <h6 class="fw-bold text-primary">{{ metadata.startDate }} <span class="text-muted">to</span> {{ metadata.endDate }}</h6>
-        </div>
-      </div>
-    </div>
 
-    <!-- Next Button -->
-    <div class="text-end mt-4">
-      <button class="btn btn-primary" 
-              [disabled]="!fileName" 
-              [routerLink]="['/daterange']">
-        Next
-      </button>
+      <!-- File Metadata Cards -->
+      <div class="meta-strip mt-4" *ngIf="fileName">
+        <div class="row g-3 align-items-stretch">
+
+          <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+            <div class="info-card h-100">
+              <div class="title">CSV File</div>
+              <a href="#" class="fw-800 text-decoration-none">
+                <span class="var-text">{{ fileName }}</span>
+              </a>
+              <div class="small-muted">
+                <span class="var-text">{{ fileSize }}</span> KB
+              </div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-3 col-lg-2">
+            <div class="info-card h-100">
+              <div class="title">Records</div>
+              <p class="value text-primary-strong">
+                <span class="var-text">{{ metadata.records }}</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-3 col-lg-2">
+            <div class="info-card h-100">
+              <div class="title">Columns</div>
+              <p class="value text-primary-strong">
+                <span class="var-text">{{ metadata.columns }}</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-3 col-lg-2">
+            <div class="info-card h-100">
+              <div class="title">Pass Rate</div>
+              <p class="value text-success-strong">
+                <span class="var-text">{{ metadata.passRate }}</span>%
+              </p>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-4">
+            <div class="info-card h-100">
+              <div class="title">Date Range</div>
+              <h6 class="mb-0">
+                <span class="text-primary-strong fw-800">
+                  <span class="var-text">{{ metadata.startDate }}</span>
+                </span>
+                <span class="text-muted">  to  </span>
+                <span class="text-primary-strong fw-800">
+                  <span class="var-text">{{ metadata.endDate }}</span>
+                </span>
+              </h6>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Next Button -->
+      <div class="text-end mt-4">
+        <button
+          class="btn btn-primary btn-next"
+          [disabled]="!fileName"
+          [routerLink]="['/daterange']"
+        >
+          Next
+        </button>
+      </div>
     </div>
+  </div>
+
   </div>
 
   <!-- Footer -->
   <div class="header-banner bg-danger text-white text-center py-2">
     <small>Engineered to Outrun | MiniML POC</small>
   </div>
+
 </div>

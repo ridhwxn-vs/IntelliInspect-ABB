@@ -1,91 +1,150 @@
 <div class="container-fluid">
 
-  <!-- Header -->
+  <!-- Header (unchanged) -->
   <div class="header-banner d-flex justify-content-between align-items-center p-3 text-white">
     <h3 class="mb-0">MiniML - Predictive Quality Control</h3>
     <img src="abb-logo.png" alt="ABB Logo" height="60">
   </div>
-  <div class="bg-light text-danger px-3 py-1 small">Simplified Frontend</div>
 
-  <!-- Navigation -->
-  <ul class="nav nav-pills justify-content-center my-3">
-    <li class="nav-item"><a class="nav-link" routerLink="/upload">1 Upload Dataset</a></li>
-    <li class="nav-item"><a class="nav-link" routerLink="/daterange">2 Date Ranges</a></li>
-    <li class="nav-item"><a class="nav-link" routerLink="/training">3 Model Training</a></li>
-    <li class="nav-item"><a class="nav-link active">4 Simulation</a></li>
-  </ul>
+  <!-- Main Content -->
+  <div class="main-content">
 
-  <!-- Simulation Card -->
-  <div class="card shadow-sm p-4 mb-4">
-    <h5>Real-Time Prediction Simulation <span class="badge bg-primary float-end">Step 4 of 4</span></h5>
-
-    <div class="text-center my-4">
-        <div class="text-center my-4">
-            <button class="btn btn-primary" (click)="toggleSimulation()">
-                {{ running ? 'Stop Simulation' : (finished ? 'Restart Simulation' : 'Start Simulation') }}
-            </button>
+      <div class="stepper-container d-flex justify-content-between align-items-center my-2">
+        <div class="step completed">
+          <div class="step-number">1</div>
+          <div class="step-label">Upload Dataset</div>
         </div>
-    </div>
-
-    <!-- Charts -->
-    <div class="row g-4">
-      <div class="col-md-8">
-        <div class="card p-3">
-          <h6>Real-Time Quality Predictions</h6>
-          <canvas id="qualityChart"></canvas>
+        <div class="step completed">
+          <div class="step-number">2</div>
+          <div class="step-label">Date Ranges</div>
+        </div>
+        <div class="step completed">
+          <div class="step-number">3</div>
+          <div class="step-label">Model Training</div>
+        </div>
+        <div class="step active">
+          <div class="step-number">4</div>
+          <div class="step-label">Simulation</div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card p-3">
-          <h6>Prediction Confidence</h6>
-          <canvas id="confidenceChart"></canvas>
+
+    <!-- Simulation Section -->
+    <div class="section-card mb-4">
+      <div class="d-flex align-items-center justify-content-between">
+        <h5 class="section-title">Real-Time Prediction Simulation</h5>
+        <span class="badge bg-primary">Step 4 of 4</span>
+      </div>
+
+      <!-- CTA -->
+      <div class="d-flex justify-content-center mt-4">
+        <button
+          class="btn btn-sim"
+          [ngClass]="running ? 'btn-outline-danger' : (finished ? 'btn-secondary' : 'btn-primary')"
+          (click)="toggleSimulation()">
+          {{ running ? 'Stop Simulation' : (finished ? 'Restart Simulation' : 'Start Simulation') }}
+        </button>
+      </div>
+
+      <!-- Helper text -->
+      <p class="text-center text-muted small mt-2" *ngIf="!running && !finished">
+        Click “Start Simulation” to begin streaming predictions
+      </p>
+
+      <!-- Status pills -->
+      <div class="d-flex justify-content-center my-3" *ngIf="running">
+        <div class="status-chip success"><span class="dot"></span> Streaming live…</div>
+      </div>
+      <div class="d-flex justify-content-center my-3" *ngIf="finished && !running">
+        <div class="status-chip neutral"><span class="dot neutral"></span> Simulation finished</div>
+      </div>
+
+      <!-- Charts -->
+      <div class="row g-4 mt-2">
+        <div class="col-lg-8">
+          <div class="chart-card">
+            <div class="card-header"><strong>Real-Time Quality Predictions</strong></div>
+            <div class="card-body">
+              <canvas id="qualityChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="chart-card">
+            <div class="card-header"><strong>Prediction Confidence</strong></div>
+            <div class="card-body">
+              <canvas id="confidenceChart"></canvas>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Live Statistics -->
-    <div class="row text-center g-3 mt-4">
-      <div class="col-md-3"><div class="card p-3"><h6>Total</h6><h4>{{ total }}</h4></div></div>
-      <div class="col-md-3"><div class="card p-3"><h6>Pass</h6><h4 class="text-success">{{ pass }}</h4></div></div>
-      <div class="col-md-3"><div class="card p-3"><h6>Fail</h6><h4 class="text-danger">{{ fail }}</h4></div></div>
-      <div class="col-md-3"><div class="card p-3"><h6>Avg Confidence</h6><h4>{{ avgConf | number : '1.0-1' }}%</h4></div></div>
-    </div>
-
-    <!-- Live Prediction Stream -->
-    <div class="card mt-4">
-      <div class="card-body">
-        <h6 class="mb-3">Live Prediction Stream</h6>
-        <table class="table table-sm table-striped">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Sample ID</th>
-              <th>Prediction</th>
-              <th>Confidence</th>
-              <th>Temperature (°C)</th>
-              <th>Pressure (hPa)</th>
-              <th>Humidity (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of rows">
-              <td>{{ row.time }}</td>
-              <td>{{ row.sampleId }}</td>
-              <td [class.text-success]="row.prediction==='Pass'" [class.text-danger]="row.prediction==='Fail'">
-                {{ row.prediction }}
-              </td>
-              <td>{{ row.confidence }}%</td>
-              <td>{{ row.temperature }}</td>
-              <td>{{ row.pressure }}</td>
-              <td>{{ row.humidity }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Live Statistics -->
+      <div class="row g-3 mt-4">
+        <div class="col-6 col-md-3">
+          <div class="metric-box">
+            <div class="metric-title">Total</div>
+            <div class="metric-value">{{ total }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="metric-box">
+            <div class="metric-title">Pass</div>
+            <div class="metric-value text-success">{{ pass }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="metric-box">
+            <div class="metric-title">Fail</div>
+            <div class="metric-value text-danger">{{ fail }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="metric-box">
+            <div class="metric-title">Avg Confidence</div>
+            <div class="metric-value">{{ avgConf | number : '1.0-1' }}%</div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Footer -->
+      <!-- Live Prediction Stream -->
+      <div class="table-card mt-4">
+        <div class="card-header"><strong>Live Prediction Stream</strong></div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover live-table m-0">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Sample ID</th>
+                  <th>Prediction</th>
+                  <th>Confidence</th>
+                  <th>Temperature (°C)</th>
+                  <th>Pressure (hPa)</th>
+                  <th>Humidity (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows">
+                  <td>{{ row.time }}</td>
+                  <td>{{ row.sampleId }}</td>
+                  <td [class.text-success]="row.prediction==='Pass'"
+                      [class.text-danger]="row.prediction==='Fail'">
+                    {{ row.prediction }}
+                  </td>
+                  <td>{{ row.confidence }}%</td>
+                  <td>{{ row.temperature }}</td>
+                  <td>{{ row.pressure }}</td>
+                  <td>{{ row.humidity }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div> 
+  </div> 
+
   <div class="header-banner bg-danger text-white text-center py-2">
     <small>Engineered to Outrun | MiniML POC</small>
   </div>

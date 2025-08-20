@@ -5,58 +5,105 @@
     <h3 class="mb-0">MiniML - Predictive Quality Control</h3>
     <img src="abb-logo.png" alt="ABB Logo" height="60">
   </div>
-  <div class="bg-light text-danger px-3 py-1 small">Simplified Frontend</div>
 
-  <!-- Navigation -->
-  <ul class="nav nav-pills justify-content-center my-3">
-    <li class="nav-item"><a class="nav-link" routerLink="/upload">1 Upload Dataset</a></li>
-    <li class="nav-item"><a class="nav-link" routerLink="/daterange">2 Date Ranges</a></li>
-    <li class="nav-item"><a class="nav-link active">3 Model Training</a></li>
-    <li class="nav-item"><a class="nav-link disabled">4 Simulation</a></li>
-  </ul>
+  <!-- Main Content -->
+  <div class="main-content">
 
-  <!-- Training Section -->
-  <div class="card shadow-sm p-4 mb-4">
-    <h5>Model Training & Evaluation <span class="badge bg-primary float-end">Step 3 of 4</span></h5>
-
-    <!-- Before Training -->
-    <div *ngIf="!trained" class="text-center my-5">
-      <button class="btn btn-primary" (click)="trainModel()">Train Model</button>
-    </div>
-
-    <!-- After Training -->
-    <div *ngIf="trained">
-      <div class="alert alert-success">✔ Model Trained</div>
-
-      <!-- Metrics Cards -->
-      <div class="row text-center g-3">
-        <div class="col-md-3"><div class="card p-3"><h6>Accuracy</h6><h4>{{accuracy}}%</h4></div></div>
-        <div class="col-md-3"><div class="card p-3"><h6>Precision</h6><h4>{{precision}}%</h4></div></div>
-        <div class="col-md-3"><div class="card p-3"><h6>Recall</h6><h4>{{recall}}%</h4></div></div>
-        <div class="col-md-3"><div class="card p-3"><h6>F1 Score</h6><h4>{{f1score}}%</h4></div></div>
-      </div>
-
-      <p class="small text-muted mt-2">Model trained on 10 months of data · Validated on 2 months · Ready for 2 month simulation</p>
-
-      <!-- Training Metrics Chart -->
-      <div class="card mt-4">
-        <div class="card-body">
-          <h6 class="mb-3">Training Metrics</h6>
-          <canvas id="trainingChart"></canvas>
+      <div class="stepper-container d-flex justify-content-between align-items-center my-2">
+        <div class="step completed">
+          <div class="step-number">1</div>
+          <div class="step-label">Upload Dataset</div>
+        </div>
+        <div class="step completed">
+          <div class="step-number">2</div>
+          <div class="step-label">Date Ranges</div>
+        </div>
+        <div class="step active">
+          <div class="step-number">3</div>
+          <div class="step-label">Model Training</div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-label">Simulation</div>
         </div>
       </div>
 
-      <!-- Confusion Matrix Donut -->
-      <div class="card mt-4">
-        <div class="card-body">
-          <h6 class="mb-3">Model Performance</h6>
-          <canvas id="confusionChart"></canvas>
-        </div>
+    <!-- Training Section -->
+    <div class="section-card mb-4">
+      <div class="d-flex align-items-center justify-content-between">
+        <h5 class="section-title">Model Training &amp; Evaluation</h5>
+        <span class="badge bg-primary">Step 3 of 4</span>
       </div>
 
-      <!-- Next Button -->
-      <div class="text-end mt-4">
-        <button class="btn btn-primary" [routerLink]="['/simulation']">Next</button>
+      <!-- Before Training -->
+      <div *ngIf="!trained" class="text-center my-5">
+        <button class="btn btn-primary btn-train" (click)="trainModel()">Train Model</button>
+      </div>
+
+      <!-- After Training -->
+      <div *ngIf="trained">
+        <div class="d-flex justify-content-center my-4">
+          <div class="status-chip success">
+            <span class="dot"></span> Model Trained
+          </div>
+        </div>
+
+        <!-- Metrics Tiles -->
+        <div class="row g-3 text-center">
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="metric-card gradient-purple">
+              <div class="metric-title">Accuracy</div>
+              <div class="metric-value">{{ accuracy }}%</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="metric-card gradient-pink">
+              <div class="metric-title">Precision</div>
+              <div class="metric-value">{{ precision }}%</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="metric-card gradient-blue">
+              <div class="metric-title">Recall</div>
+              <div class="metric-value">{{ recall }}%</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="metric-card gradient-green">
+              <div class="metric-title">F1 Score</div>
+              <div class="metric-value">{{ f1score }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="small text-muted mt-2">
+          Model trained on 10 months of data · Validated on 2 months · Ready for 2 month simulation
+        </p>
+
+        <!-- Training Metrics -->
+        <div class="chart-card mt-4">
+          <div class="card-header">
+            <strong>Model Performance</strong>
+          </div>
+          <div class="card-body">
+            <canvas id="trainingChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Performance Donut -->
+        <div class="chart-card mt-4">
+          <div class="card-header">
+            <strong>Model Performance</strong>
+          </div>
+          <div class="card-body">
+            <canvas id="confusionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Next -->
+        <div class="d-flex justify-content-end mt-4">
+          <button class="btn btn-primary btn-next" [routerLink]="['/simulation']">Next</button>
+        </div>
       </div>
     </div>
   </div>

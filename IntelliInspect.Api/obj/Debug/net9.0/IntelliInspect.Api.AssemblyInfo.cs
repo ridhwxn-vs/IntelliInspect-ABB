@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IntelliInspect.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+09d88adaa54550559a6440f50a8408d27712408c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+afbe7b9167dcdce3a5e3dcf577a4bca40ee9dc60")]
 [assembly: System.Reflection.AssemblyProductAttribute("IntelliInspect.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IntelliInspect.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
