@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { ApiService, TrainResponse } from '../../api.service';
@@ -13,7 +13,6 @@ Chart.register(...registerables);
   templateUrl: './modeltraining.html',
   styleUrls: ['./modeltraining.css']
 })
-
 export class ModelTraining {
   trained = false;
   loading = false;
@@ -29,6 +28,12 @@ export class ModelTraining {
 
   constructor(private api: ApiService) {}
 
+  // NEW: clean up charts if user navigates away
+  ngOnDestroy() {
+    this.lineChart?.destroy();
+    this.donutChart?.destroy();
+  }
+
   private pad(n: number) { return String(n).padStart(2, '0'); }
 
   private fmtLocal(d: Date): string {
@@ -39,39 +44,22 @@ export class ModelTraining {
   private toYYYYmmddHHMMSS(input: any): string {
     if (!input) return '';
 
-    // If already in "yyyy-MM-dd HH:mm:ss", keep it
     if (typeof input === 'string') {
       let s = input.trim();
-
-      // Replace 'T' with space if present
       s = s.replace('T', ' ');
-
-      // Remove trailing 'Z' (ISO UTC) and convert via Date to local
       if (s.endsWith('Z')) {
         const d = new Date(input);
         return this.fmtLocal(d);
       }
-
-      // Add seconds if only yyyy-MM-dd HH:mm
       if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s)) return `${s}:00`;
-
-      // Trim milliseconds if any: yyyy-MM-dd HH:mm:ss.sss
-      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+$/.test(s)) {
-        s = s.split('.')[0];
-      }
-
-      // If it now matches the strict shape, return it
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+$/.test(s)) s = s.split('.')[0];
       if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) return s;
 
-      // Fallback: let Date parse it and format
       const d = new Date(s);
       if (!isNaN(d.getTime())) return this.fmtLocal(d);
-      return ''; // invalid
+      return '';
     }
-
-    // Handle Date object
     if (input instanceof Date) return this.fmtLocal(input);
-
     return '';
   }
 
@@ -83,12 +71,10 @@ export class ModelTraining {
       return;
     }
 
-    // ranges from sessionStorage (saved in Step 2)
     let ranges: any = {};
     try { ranges = JSON.parse(sessionStorage.getItem('miniml:ranges') || '{}'); } catch {}
     let { trainStart, trainEnd, testStart, testEnd } = ranges;
 
-    // ✅ Normalize to "yyyy-MM-dd HH:mm:ss" before POST
     trainStart = this.toYYYYmmddHHMMSS(trainStart);
     trainEnd   = this.toYYYYmmddHHMMSS(trainEnd);
     testStart  = this.toYYYYmmddHHMMSS(testStart);
@@ -110,8 +96,11 @@ export class ModelTraining {
           this.recall = res.recall;
           this.f1score = res.f1score;
           this.trained = true;
-          this.renderLine(res.history.epochs, res.history.train_accuracy, res.history.train_logloss);
-          this.renderDonut(res.confusion.tp, res.confusion.tn, res.confusion.fp, res.confusion.fn);
+
+          setTimeout(() => {
+            this.renderLine(res.history.epochs, res.history.train_accuracy, res.history.train_logloss);
+            this.renderDonut(res.confusion.tp, res.confusion.tn, res.confusion.fp, res.confusion.fn);
+          }, 0);
         },
         error: async (err: any) => {
           console.error('HttpErrorResponse:', err);
@@ -122,7 +111,6 @@ export class ModelTraining {
             alert(text);
             return;
           }
-
           if (typeof err?.error === 'string') {
             console.error('Error string:', err.error);
             alert(err.error);
@@ -138,15 +126,20 @@ export class ModelTraining {
 
           console.error('Train failed:', { detail, msg, stderr, stdout, script, pyExe });
           alert(detail || msg || 'Server error');
+          this.loading = false; // NEW: ensure spinner stops on error
         }
       });
   }
 
   private renderLine(epochs: number[], trainAcc: number[], trainLogloss: number[]) {
-    const ctx = document.getElementById('trainingChart') as HTMLCanvasElement;
+    const ctx = document.getElementById('trainingChart') as HTMLCanvasElement | null;
     if (!ctx) return;
 
-    if (this.lineChart) this.lineChart.destroy();
+    this.lineChart?.destroy();
+
+    // If API returned a single point, make sure it’s visible (bigger point)
+    const accPointRadius  = trainAcc.length <= 1 ? 3 : 0;
+    const lossPointRadius = trainLogloss.length <= 1 ? 3 : 0;
 
     this.lineChart = new Chart(ctx, {
       type: 'line',
@@ -158,23 +151,26 @@ export class ModelTraining {
             data: trainAcc,
             borderColor: 'green',
             yAxisID: 'y',
-            tension: 0.2
+            tension: 0.2,
+            pointRadius: accPointRadius
           },
           {
             label: 'Training Logloss',
             data: trainLogloss,
             borderColor: 'red',
             yAxisID: 'y1',
-            tension: 0.2
+            tension: 0.2,
+            pointRadius: lossPointRadius
           }
         ]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,          // NEW: ensure it fills the fixed-height container
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { position: 'top' } },
         scales: {
-          y:  { beginAtZero: true, title: { display: true, text: 'Accuracy (%)' } },
+          y:  { beginAtZero: true, title: { display: true, text: 'Accuracy (%)' }, min: 0, max: 100 },
           y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'Logloss' }, grid: { drawOnChartArea: false } }
         }
       }
@@ -182,10 +178,10 @@ export class ModelTraining {
   }
 
   private renderDonut(tp: number, tn: number, fp: number, fn: number) {
-    const ctx = document.getElementById('confusionChart') as HTMLCanvasElement;
+    const ctx = document.getElementById('confusionChart') as HTMLCanvasElement | null;
     if (!ctx) return;
 
-    if (this.donutChart) this.donutChart.destroy();
+    this.donutChart?.destroy();
 
     this.donutChart = new Chart(ctx, {
       type: 'doughnut',
@@ -196,7 +192,12 @@ export class ModelTraining {
           backgroundColor: ['#28a745', '#0d6efd', '#fd7e14', '#dc3545']
         }]
       },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,         // NEW: fills container height
+        plugins: { legend: { position: 'bottom' } },
+        cutout: '55%'                        // NEW: cleaner “donut” look
+      }
     });
   }
 }

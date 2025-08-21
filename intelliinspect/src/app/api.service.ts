@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 export interface UploadResponse {
@@ -21,14 +21,31 @@ export interface TrainResponse {
   confusion: { tp: number; tn: number; fp: number; fn: number };
   history: {
     epochs: number[];
-    train_accuracy: number[]; 
+    train_accuracy: number[];
     train_logloss: number[];
+  };
+  // optional base64 images if backend sends them
+  charts?: {
+    trainingLinePng?: string;
+    confusionDonutPng?: string;
   };
 }
 
+// --- Simulation types ---
+export interface SimulationRequest {
+  fileKey: string;
+  trainStart: string;
+  trainEnd: string;
+  simStart: string;
+  simEnd: string;
+  maxRows?: number;  // optional cap for UI streaming
+}
+// If your backend returns {points:[...]} or an array, keep this as any for now.
+// You can tighten this later to a specific shape if desired.
+export type SimulationResponse = any;
+
 @Injectable({ providedIn: 'root' })
-export class ApiService 
-{
+export class ApiService {
   private baseUrl = 'http://localhost:5159';
 
   private fileKey$ = new BehaviorSubject<string | null>(
@@ -45,15 +62,16 @@ export class ApiService
 
   setCurrentFileKey(key: string) {
     this.fileKey$.next(key);
-    try { sessionStorage.setItem('miniml:fileKey', key); } catch {}
+    try {
+      sessionStorage.setItem('miniml:fileKey', key);
+    } catch {}
   }
 
   getCurrentFileKey(): string | null {
     return this.fileKey$.value;
   }
 
-  setDatasetBounds(startDate: string, endDate: string) 
-  {
+  setDatasetBounds(startDate: string, endDate: string) {
     try {
       sessionStorage.setItem('miniml:startDate', startDate);
       sessionStorage.setItem('miniml:endDate', endDate);
@@ -71,9 +89,18 @@ export class ApiService
     }
   }
 
-  trainModel(payload: { fileKey: string; trainStart: string; trainEnd: string; testStart: string;  testEnd: string;}) 
-  {
+  trainModel(payload: {
+    fileKey: string;
+    trainStart: string;
+    trainEnd: string;
+    testStart: string;
+    testEnd: string;
+  }): Observable<TrainResponse> {
     return this.http.post<TrainResponse>(`${this.baseUrl}/train-model`, payload);
   }
 
+  // --- Simulation call ---
+  startSimulation(payload: SimulationRequest): Observable<SimulationResponse> {
+    return this.http.post<SimulationResponse>(`${this.baseUrl}/simulate`, payload);
+  }
 }

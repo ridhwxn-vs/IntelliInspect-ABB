@@ -2,6 +2,8 @@ import argparse, json, sys
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.preprocessing import OneHotEncoder
+from scipy import sparse
 from xgboost import XGBClassifier
 
 # ------------------ ARG PARSING ------------------
@@ -82,16 +84,71 @@ def main():
     X_train = train.drop(columns=[c for c in [args.timestamp_col, args.target_col] if c in train.columns])
     X_test  = test.drop(columns=[c for c in [args.timestamp_col, args.target_col] if c in test.columns])
 
-    # one-hot encode categoricals
-    cat_cols = X_train.select_dtypes(include=['object']).columns.tolist()
-    if cat_cols:
-        X_train = pd.get_dummies(X_train, columns=cat_cols, dummy_na=True)
-        X_test  = pd.get_dummies(X_test,  columns=cat_cols, dummy_na=True)
+    # ===== Memory-safe feature engineering =====
+    LOW_CARD_MAX = 40                # OHE only if <= 40 unique levels
+    OHE_MAX_WIDTH = 20000            # hard cap on total OHE features
+    ROW_FRAC_CAP = 0.05              # and each OHE column must have nunique <= 5% of rows
 
-    # align
-    X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
-    X_train = X_train.fillna(0).astype("float32")
-    X_test  = X_test.fillna(0).astype("float32")
+    # numeric vs categorical (object)
+    num_cols = X_train.select_dtypes(exclude=['object']).columns.tolist()
+    cat_cols = X_train.select_dtypes(include=['object']).columns.tolist()
+
+    # frequency-encode high-card categoricals
+    low_card, high_card = [], []
+    nunqs = {}
+    combined_rows = max(1, len(X_train))
+    for c in cat_cols:
+        nunq = pd.concat([X_train[c], X_test[c]], axis=0).nunique(dropna=False)
+        nunqs[c] = int(nunq)
+        # treat as low-card ONLY if tiny relative to rows and <= LOW_CARD_MAX
+        if nunq <= LOW_CARD_MAX and nunq <= max(10, int(ROW_FRAC_CAP * combined_rows)):
+            low_card.append(c)
+        else:
+            high_card.append(c)
+
+    # frequency-encode high-card (single compact float32 per col)
+    for c in high_card:
+        freq = X_train[c].value_counts(dropna=False)
+        X_train[c] = X_train[c].map(freq).astype('float32')
+        X_test[c]  = X_test[c].map(freq).astype('float32')
+
+    # numeric + high-card block (dense -> csr)
+    base_cols = num_cols + high_card
+    if base_cols:
+        num_block_tr = X_train[base_cols].fillna(0).to_numpy(dtype=np.float32, copy=False)
+        num_block_te = X_test[base_cols].fillna(0).to_numpy(dtype=np.float32, copy=False)
+        base_tr = sparse.csr_matrix(num_block_tr)
+        base_te = sparse.csr_matrix(num_block_te)
+    else:
+        base_tr = sparse.csr_matrix((len(X_train), 0), dtype=np.float32)
+        base_te = sparse.csr_matrix((len(X_test), 0), dtype=np.float32)
+
+    # projected OHE width; abandon OHE entirely if it explodes
+    projected_ohe = sum(nunqs[c] for c in low_card) if low_card else 0
+    do_ohe = low_card and projected_ohe <= OHE_MAX_WIDTH
+
+    if do_ohe:
+        ohe = OneHotEncoder(handle_unknown='ignore', sparse=True, dtype=np.float32)
+        ohe_tr = ohe.fit_transform(X_train[low_card])
+        ohe_te = ohe.transform(X_test[low_card])
+    else:
+        # fall back to frequency-encode everything to keep width small
+        for c in low_card:
+            freq = X_train[c].value_counts(dropna=False)
+            X_train[c] = X_train[c].map(freq).astype('float32')
+            X_test[c]  = X_test[c].map(freq).astype('float32')
+        extra_tr = sparse.csr_matrix(X_train[low_card].fillna(0).to_numpy(dtype=np.float32)) if low_card else sparse.csr_matrix((len(X_train), 0), dtype=np.float32)
+        extra_te = sparse.csr_matrix(X_test[low_card].fillna(0).to_numpy(dtype=np.float32))  if low_card else sparse.csr_matrix((len(X_test), 0), dtype=np.float32)
+        ohe_tr, ohe_te = extra_tr, extra_te
+
+    # final sparse matrices
+    X_tr = sparse.hstack([base_tr, ohe_tr], format='csr', dtype=np.float32)
+    X_te = sparse.hstack([base_te, ohe_te], format='csr', dtype=np.float32)
+
+    # class imbalance helper
+    pos = max(1, int((y_train == 1).sum()))
+    neg = max(1, int((y_train == 0).sum()))
+    pos_weight = float(neg) / float(pos)
 
     # model & fit
     metrics_list, loss_key, err_key = choose_metrics(y_train)
@@ -104,12 +161,13 @@ def main():
         reg_lambda=1.0,
         random_state=42,
         n_jobs=-1,
-        tree_method='hist'
+        tree_method='hist',
+        scale_pos_weight=pos_weight
     )
-    safe_fit(model, X_train, y_train, X_test, y_test, metrics_list)
+    safe_fit(model, X_tr, y_train, X_te, y_test, metrics_list)
 
     # test metrics
-    y_pred = model.predict(X_test)
+    y_pred = model.predict(X_te)
     acc  = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred, zero_division=0)
     rec  = recall_score(y_test, y_pred, zero_division=0)
@@ -129,21 +187,20 @@ def main():
         evals = {}
 
     val0 = evals.get('validation_0', {})
-    if loss_key in val0 or err_key in val0:
+    if val0:
         ll = val0.get(loss_key, [])
         er = val0.get(err_key, [])
         if er: train_accuracy = [(1.0 - e) * 100.0 for e in er]
         if ll: train_logloss = ll
         L = max(len(train_logloss), len(train_accuracy))
         if L == 0:
-            train_accuracy = [accuracy_score(y_train, model.predict(X_train)) * 100.0]
+            train_accuracy = [accuracy_score(y_train, model.predict(X_tr)) * 100.0]
             L = 1
         epochs = list(range(1, L+1))
     else:
         epochs = [1]
-        train_accuracy = [accuracy_score(y_train, model.predict(X_train)) * 100.0]
+        train_accuracy = [accuracy_score(y_train, model.predict(X_tr)) * 100.0]
 
-    # output JSON only
     out = {
         "accuracy": round(acc*100.0, 2),
         "precision": round(prec*100.0, 2),

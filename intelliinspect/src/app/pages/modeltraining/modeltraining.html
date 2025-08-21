@@ -37,7 +37,12 @@
 
       <!-- Before Training -->
       <div *ngIf="!trained" class="text-center my-5">
-        <button class="btn btn-primary btn-train" (click)="trainModel()">Train Model</button>
+        <!-- CHANGED: disable while loading + label -->
+        <button class="btn btn-primary btn-train"
+                (click)="trainModel()"
+                [disabled]="loading">
+          {{ loading ? 'Training…' : 'Train Model' }}
+        </button>
       </div>
 
       <!-- After Training -->
@@ -86,7 +91,10 @@
             <strong>Model Performance</strong>
           </div>
           <div class="card-body">
-            <canvas id="trainingChart"></canvas>
+            <!-- CHANGED: give canvas a fixed-height wrapper -->
+            <div style="height:320px">
+              <canvas id="trainingChart"></canvas>
+            </div>
           </div>
         </div>
 
@@ -96,7 +104,10 @@
             <strong>Model Performance</strong>
           </div>
           <div class="card-body">
-            <canvas id="confusionChart"></canvas>
+            <!-- CHANGED: fixed-height wrapper -->
+            <div style="height:320px">
+              <canvas id="confusionChart"></canvas>
+            </div>
           </div>
         </div>
 

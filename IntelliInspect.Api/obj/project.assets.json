@@ -478,19 +478,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\ridhw\\.nuget\\packages\\": {}
+    "C:\\Users\\lione\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\IntelliInspect.Api.csproj",
+      "projectUniqueName": "C:\\Users\\lione\\Documents\\NLP Project\\IntelliInspect-ABB\\IntelliInspect.Api\\IntelliInspect.Api.csproj",
       "projectName": "IntelliInspect.Api",
-      "projectPath": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\IntelliInspect.Api.csproj",
-      "packagesPath": "C:\\Users\\ridhw\\.nuget\\packages\\",
-      "outputPath": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\obj\\",
+      "projectPath": "C:\\Users\\lione\\Documents\\NLP Project\\IntelliInspect-ABB\\IntelliInspect.Api\\IntelliInspect.Api.csproj",
+      "packagesPath": "C:\\Users\\lione\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\lione\\Documents\\NLP Project\\IntelliInspect-ABB\\IntelliInspect.Api\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\ridhw\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\lione\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -548,7 +548,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

@@ -171,8 +171,8 @@
   border-top-right-radius: 16px;
   padding: 10px 14px;
 }
-.chart-card .card-body { padding: 16px; }
-
+.chart-card .card-body { padding: 16px; height: 320px;}
+.chart-card canvas { width: 100% !important; height: 100% !important; display: block; }
 /* Next button alignment consistency */
 .btn-next { min-width: 120px; }
 

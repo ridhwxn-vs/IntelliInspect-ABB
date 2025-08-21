@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { RangeService } from '../../range.service';
@@ -26,6 +26,8 @@ interface PredictionRow {
 export class SimulationComponent {
   running = false;
   finished = false;
+  errorMsg = '';
+
   total = 0;
   pass = 0;
   fail = 0;
@@ -35,9 +37,80 @@ export class SimulationComponent {
   private lineChart: Chart | null = null;
   private donutChart: Chart | null = null;
   private intervalId: any;
-  private totalRecords = 0; // how many records to simulate
+  private totalRecords = 0;
 
   constructor(private rangeService: RangeService) {}
+
+  // --- helpers to normalize dates to "yyyy-MM-dd HH:mm:ss" ---
+  private pad(n: number) { return String(n).padStart(2, '0'); }
+  private fmtLocal(d: Date): string {
+    return `${d.getFullYear()}-${this.pad(d.getMonth()+1)}-${this.pad(d.getDate())} ` +
+           `${this.pad(d.getHours())}:${this.pad(d.getMinutes())}:${this.pad(d.getSeconds())}`;
+  }
+  private toYYYYmmddHHMMSS(input: any): string {
+    if (!input) return '';
+    if (typeof input === 'string') {
+      let s = input.trim().replace('T', ' ');
+      if (s.endsWith('Z')) return this.fmtLocal(new Date(input));
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s)) return `${s}:00`;
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+$/.test(s)) s = s.split('.')[0];
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) return s;
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? '' : this.fmtLocal(d);
+    }
+    if (input instanceof Date) return this.fmtLocal(input);
+    return '';
+  }
+  private addSeconds(isoLike: string, sec: number): string {
+    const d = new Date(isoLike.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '';
+    d.setSeconds(d.getSeconds() + sec);
+    return this.fmtLocal(d);
+  }
+  private addDays(isoLike: string, days: number): string {
+    const d = new Date(isoLike.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '';
+    d.setDate(d.getDate() + days);
+    return this.fmtLocal(d);
+  }
+
+  /** Pull ranges from sessionStorage; fall back to RangeService; derive sim window if missing. */
+  private loadRanges(): {
+    trainStart: string; trainEnd: string; testStart: string; testEnd: string;
+    simStart: string; simEnd: string;
+  } | null {
+    let ranges: any = {};
+    try { ranges = JSON.parse(sessionStorage.getItem('miniml:ranges') || '{}'); } catch {}
+
+    let { trainStart, trainEnd, testStart, testEnd, simStart, simEnd } = ranges;
+
+    // fall back to RangeService for sim window if user typed it there
+    if (!simStart && this.rangeService.simStart) simStart = this.rangeService.simStart;
+    if (!simEnd   && this.rangeService.simEnd)   simEnd   = this.rangeService.simEnd;
+
+    // normalize
+    trainStart = this.toYYYYmmddHHMMSS(trainStart);
+    trainEnd   = this.toYYYYmmddHHMMSS(trainEnd);
+    testStart  = this.toYYYYmmddHHMMSS(testStart);
+    testEnd    = this.toYYYYmmddHHMMSS(testEnd);
+    simStart   = this.toYYYYmmddHHMMSS(simStart);
+    simEnd     = this.toYYYYmmddHHMMSS(simEnd);
+
+    // derive simulation window if absent
+    if (!simStart && testEnd) simStart = this.addSeconds(testEnd, 1);
+    if (!simEnd && simStart)  simEnd   = this.addDays(simStart, 60);
+
+    // final validation
+    if (!trainStart || !trainEnd || !testStart || !testEnd || !simStart || !simEnd) {
+      return null;
+    }
+
+    // persist back to service so the header/date widgets (if any) can use it
+    this.rangeService.simStart = simStart;
+    this.rangeService.simEnd   = simEnd;
+
+    return { trainStart, trainEnd, testStart, testEnd, simStart, simEnd };
+  }
 
   toggleSimulation() {
     if (this.running) {
@@ -56,12 +129,20 @@ export class SimulationComponent {
   startSimulation() {
     if (this.running) return;
 
+    const r = this.loadRanges();
+    if (!r) {
+      this.errorMsg = 'Invalid date ranges. Please reselect Step 2 ranges.';
+      return;
+    }
+    this.errorMsg = '';
+
     this.running = true;
+    this.finished = false;
     this.reset();
 
-    // ✅ Calculate total "records" from simStart–simEnd
-    const start = new Date(this.rangeService.simStart);
-    const end = new Date(this.rangeService.simEnd);
+    // Calculate total "records" ~ days between simStart/simEnd
+    const start = new Date(r.simStart.replace(' ', 'T'));
+    const end   = new Date(r.simEnd.replace(' ', 'T'));
     this.totalRecords = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
 
     // Init charts
@@ -74,7 +155,7 @@ export class SimulationComponent {
         return;
       }
 
-      // Random prediction
+      // Random (placeholder) prediction signals
       const prediction = Math.random() > 0.3 ? 'Pass' : 'Fail';
       const confidence = Math.floor(Math.random() * 30) + 70; // 70–100
       const temperature = 20 + Math.random() * 5;
@@ -85,12 +166,13 @@ export class SimulationComponent {
       if (prediction === 'Pass') this.pass++; else this.fail++;
       this.avgConf = ((this.avgConf * (this.total - 1)) + confidence) / this.total;
 
-      // Simulated timestamp (1 day per tick)
-      const now = new Date(start.getTime() + this.total * 24 * 60 * 60 * 1000).toLocaleDateString();
+      // advance by 1 day per tick
+      const tickDate = new Date(start.getTime() + this.total * 24 * 60 * 60 * 1000);
+      const nowLabel = tickDate.toLocaleDateString();
 
       // Update table
       this.rows.unshift({
-        time: now,
+        time: nowLabel,
         sampleId: sampleId++,
         prediction,
         confidence,
@@ -102,21 +184,19 @@ export class SimulationComponent {
 
       // Update charts
       if (this.lineChart) {
-        this.lineChart.data.labels?.push(now);
+        this.lineChart.data.labels?.push(nowLabel);
         (this.lineChart.data.datasets[0].data as number[]).push(confidence);
-
         if ((this.lineChart.data.labels as string[]).length > 20) {
           this.lineChart.data.labels?.shift();
           (this.lineChart.data.datasets[0].data as number[]).shift();
         }
         this.lineChart.update();
       }
-
       if (this.donutChart) {
         this.donutChart.data.datasets[0].data = [this.pass, this.fail];
         this.donutChart.update();
       }
-    }, 500); // each half second = 1 day of simulation
+    }, 500);
   }
 
   private reset() {
@@ -129,7 +209,6 @@ export class SimulationComponent {
   }
 
   private initCharts() {
-    // Line chart
     const ctx1 = document.getElementById('qualityChart') as HTMLCanvasElement;
     if (ctx1) {
       this.lineChart = new Chart(ctx1, {
@@ -154,7 +233,6 @@ export class SimulationComponent {
       });
     }
 
-    // Donut chart
     const ctx2 = document.getElementById('confidenceChart') as HTMLCanvasElement;
     if (ctx2) {
       this.donutChart = new Chart(ctx2, {

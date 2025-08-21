@@ -35,8 +35,13 @@
         <span class="badge bg-primary">Step 4 of 4</span>
       </div>
 
+      <!-- Error banner (NEW) -->
+      <div *ngIf="errorMsg" class="alert alert-danger my-3" role="alert">
+        {{ errorMsg }}
+      </div>
+
       <!-- CTA -->
-      <div class="d-flex justify-content-center mt-4">
+      <div class="d-flex justify-content-center mt-3">
         <button
           class="btn btn-sim"
           [ngClass]="running ? 'btn-outline-danger' : (finished ? 'btn-secondary' : 'btn-primary')"
@@ -46,7 +51,7 @@
       </div>
 
       <!-- Helper text -->
-      <p class="text-center text-muted small mt-2" *ngIf="!running && !finished">
+      <p class="text-center text-muted small mt-2" *ngIf="!running && !finished && !errorMsg">
         Click “Start Simulation” to begin streaming predictions
       </p>
 
@@ -54,7 +59,7 @@
       <div class="d-flex justify-content-center my-3" *ngIf="running">
         <div class="status-chip success"><span class="dot"></span> Streaming live…</div>
       </div>
-      <div class="d-flex justify-content-center my-3" *ngIf="finished && !running">
+      <div class="d-flex justify-content-center my-3" *ngIf="finished && !running && !errorMsg">
         <div class="status-chip neutral"><span class="dot neutral"></span> Simulation finished</div>
       </div>
 
@@ -70,7 +75,7 @@
         </div>
         <div class="col-lg-4">
           <div class="chart-card">
-            <div class="card-header"><strong>Prediction Confidence</strong></div>
+            <div class="card-header"><strong>Pass vs Fail (Counts)</strong></div> <!-- updated title -->
             <div class="card-body">
               <canvas id="confidenceChart"></canvas>
             </div>
@@ -142,8 +147,8 @@
         </div>
       </div>
 
-    </div> 
-  </div> 
+    </div>
+  </div>
 
   <div class="header-banner bg-danger text-white text-center py-2">
     <small>Engineered to Outrun | MiniML POC</small>

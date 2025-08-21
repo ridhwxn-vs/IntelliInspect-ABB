@@ -33,6 +33,7 @@ string TrainingScriptPath(string name) =>
 // default to ML/training.py (recommended)
 var trainingScriptRel = cfg["Python:TrainingScript"] ?? Path.Combine("ML", "training.py");
 var trainingScript = Path.Combine(AppContext.BaseDirectory, "ML", "training.py");
+var simulateScript = Path.Combine(AppContext.BaseDirectory, "ML", "simulate.py");
 
 // choose python exe
 var pyExe = OperatingSystem.IsWindows()
@@ -41,6 +42,7 @@ var pyExe = OperatingSystem.IsWindows()
 
 Console.WriteLine($"[Startup] trainingScript: {trainingScript}");
 Console.WriteLine($"[Startup] exists: {System.IO.File.Exists(trainingScript)}");
+Console.WriteLine($"[Startup] simulateScript: {simulateScript} (exists={System.IO.File.Exists(simulateScript)})");
 
 var app = builder.Build();
 
@@ -261,6 +263,77 @@ app.MapPost("/train-model", async (HttpContext ctx, TrainRequest req) =>
     }
 });
 
+// Simulation endpoint
+app.MapPost("/simulate", async (HttpContext ctx, SimulationRequest req) =>
+{
+    if (string.IsNullOrWhiteSpace(req.fileKey))
+        return Results.BadRequest(new { message = "fileKey is required." });
+
+    if (!fileIndex.TryGetValue(req.fileKey, out var csvPath) || !System.IO.File.Exists(csvPath))
+        return Results.BadRequest(new { message = "Unknown or expired fileKey." });
+
+    static bool LooksLikeDate(string? s) => !string.IsNullOrWhiteSpace(s) && s!.Length >= 19 && s[4] == '-' && s[7] == '-' && s[10] == ' ';
+    if (!LooksLikeDate(req.trainStart) || !LooksLikeDate(req.trainEnd) ||
+        !LooksLikeDate(req.simStart)   || !LooksLikeDate(req.simEnd))
+        return Results.BadRequest(new { message = "Dates must be 'yyyy-MM-dd HH:mm:ss'." });
+
+    var scriptFull = Path.GetFullPath(simulateScript);
+    if (!System.IO.File.Exists(scriptFull))
+        return Results.Problem($"simulate.py not found at {scriptFull}", statusCode: 500);
+
+    var psi = new ProcessStartInfo
+    {
+        FileName = pyExe,
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError  = true,
+        CreateNoWindow = true,
+        WorkingDirectory = Path.GetDirectoryName(scriptFull)!,
+    };
+    psi.Environment["PYTHONUNBUFFERED"] = "1";
+
+    psi.ArgumentList.Add(scriptFull);
+    psi.ArgumentList.Add("--csv");         psi.ArgumentList.Add(csvPath);
+    psi.ArgumentList.Add("--train-start"); psi.ArgumentList.Add(req.trainStart);
+    psi.ArgumentList.Add("--train-end");   psi.ArgumentList.Add(req.trainEnd);
+    psi.ArgumentList.Add("--sim-start");   psi.ArgumentList.Add(req.simStart);
+    psi.ArgumentList.Add("--sim-end");     psi.ArgumentList.Add(req.simEnd);
+    psi.ArgumentList.Add("--max-rows");    psi.ArgumentList.Add((req.maxRows ?? 600).ToString());
+
+    try
+    {
+        using var proc = Process.Start(psi);
+        if (proc is null)
+            return Results.Problem($"Failed to start '{pyExe}'.", statusCode: 500);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+        var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+        var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+        await Task.WhenAll(proc.WaitForExitAsync(cts.Token), stdoutTask, stderrTask);
+
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+
+        if (proc.ExitCode != 0)
+        {
+            return Results.Json(new
+            {
+                message = $"Simulation failed (exit={proc.ExitCode}).",
+                script  = scriptFull,
+                pyExe,
+                stderr,
+                stdout
+            }, statusCode: 500);
+        }
+
+        // simulate.py prints a JSON array of rows
+        return Results.Content(stdout, "application/json");
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { message = "Unhandled server error.", error = ex.ToString() }, statusCode: 500);
+    }
+});
 
 app.MapGet("/", () => Results.Ok("MiniML API running."));
 
