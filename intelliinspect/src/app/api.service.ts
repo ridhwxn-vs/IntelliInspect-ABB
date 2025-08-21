@@ -13,8 +13,22 @@ export interface UploadResponse {
   hasTimestamp: boolean;
 }
 
+export interface TrainResponse {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1score: number;
+  confusion: { tp: number; tn: number; fp: number; fn: number };
+  history: {
+    epochs: number[];
+    train_accuracy: number[]; 
+    train_logloss: number[];
+  };
+}
+
 @Injectable({ providedIn: 'root' })
-export class ApiService {
+export class ApiService 
+{
   private baseUrl = 'http://localhost:5159';
 
   private fileKey$ = new BehaviorSubject<string | null>(
@@ -38,21 +52,28 @@ export class ApiService {
     return this.fileKey$.value;
   }
 
-  setDatasetBounds(startDate: string, endDate: string) {
-  try {
-    sessionStorage.setItem('miniml:startDate', startDate);
-    sessionStorage.setItem('miniml:endDate', endDate);
-  } catch {}
-}
-
-getDatasetBounds(): { startDate: string; endDate: string } | null {
-  try {
-    const startDate = sessionStorage.getItem('miniml:startDate') || '';
-    const endDate = sessionStorage.getItem('miniml:endDate') || '';
-    if (!startDate || !endDate) return null;
-    return { startDate, endDate };
-  } catch {
-    return null;
+  setDatasetBounds(startDate: string, endDate: string) 
+  {
+    try {
+      sessionStorage.setItem('miniml:startDate', startDate);
+      sessionStorage.setItem('miniml:endDate', endDate);
+    } catch {}
   }
-}
+
+  getDatasetBounds(): { startDate: string; endDate: string } | null {
+    try {
+      const startDate = sessionStorage.getItem('miniml:startDate') || '';
+      const endDate = sessionStorage.getItem('miniml:endDate') || '';
+      if (!startDate || !endDate) return null;
+      return { startDate, endDate };
+    } catch {
+      return null;
+    }
+  }
+
+  trainModel(payload: { fileKey: string; trainStart: string; trainEnd: string; testStart: string;  testEnd: string;}) 
+  {
+    return this.http.post<TrainResponse>(`${this.baseUrl}/train-model`, payload);
+  }
+
 }

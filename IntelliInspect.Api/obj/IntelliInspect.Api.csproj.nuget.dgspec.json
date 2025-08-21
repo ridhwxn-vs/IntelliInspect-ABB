@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\IntelliInspect.Api.csproj": {}
+    "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\IntelliInspect.Api\\IntelliInspect.Api.csproj": {}
   },
   "projects": {
-    "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\IntelliInspect.Api.csproj": {
+    "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\IntelliInspect.Api\\IntelliInspect.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\IntelliInspect.Api.csproj",
+        "projectUniqueName": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\IntelliInspect.Api\\IntelliInspect.Api.csproj",
         "projectName": "IntelliInspect.Api",
-        "projectPath": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\IntelliInspect.Api.csproj",
+        "projectPath": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\IntelliInspect.Api\\IntelliInspect.Api.csproj",
         "packagesPath": "C:\\Users\\ridhw\\.nuget\\packages\\",
-        "outputPath": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\Intelliinspect.Api\\obj\\",
+        "outputPath": "D:\\Documents\\Ridhwan\\Placement Prep\\ABB\\IntelliInspect.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ridhw\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -2,6 +2,9 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Http.Features;
+using System.Diagnostics;
+using System.Text.Json;
+using IntelliInspect.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,12 +25,28 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = long.MaxValue;
 });
 
+var cfg = builder.Configuration;
+
+string TrainingScriptPath(string name) =>
+    Path.IsPathRooted(name) ? name : Path.Combine(AppContext.BaseDirectory, name);
+
+// default to ML/training.py (recommended)
+var trainingScriptRel = cfg["Python:TrainingScript"] ?? Path.Combine("ML", "training.py");
+var trainingScript = Path.Combine(AppContext.BaseDirectory, "ML", "training.py");
+
+// choose python exe
+var pyExe = OperatingSystem.IsWindows()
+    ? cfg["Python:ExeWin"] ?? "python"
+    : cfg["Python:Exe"] ?? "python3";
+
+Console.WriteLine($"[Startup] trainingScript: {trainingScript}");
+Console.WriteLine($"[Startup] exists: {System.IO.File.Exists(trainingScript)}");
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
 
 // In-memory index of uploaded augmented files for the current app lifetime
-// key => absolute path to the (possibly augmented) CSV persisted to temp
 var fileIndex = new ConcurrentDictionary<string, string>();
 var tempRoot = Path.Combine(Path.GetTempPath(), "miniml_uploads");
 Directory.CreateDirectory(tempRoot);
@@ -86,7 +105,6 @@ app.MapPost("/upload-dataset", async (HttpRequest request) =>
             if (string.IsNullOrWhiteSpace(line)) continue;
             var fields = SplitCsv(line);
 
-            // keep count even if row is short/long
             records++;
 
             // pass rate (Response == "1")
@@ -120,7 +138,6 @@ app.MapPost("/upload-dataset", async (HttpRequest request) =>
         using var sr = new StreamReader(originalPath, Encoding.UTF8, true, 1024 * 64);
         using var sw = new StreamWriter(augmentedPath, false, new UTF8Encoding(false));
 
-        // write new header with Timestamp appended
         var headerLine = await sr.ReadLineAsync();
         await sw.WriteLineAsync($"{headerLine},Timestamp");
 
@@ -134,13 +151,12 @@ app.MapPost("/upload-dataset", async (HttpRequest request) =>
 
         maxTs = start.AddSeconds(Math.Max(rowIndex - 1, 0));
         finalPath = augmentedPath;
-        columns += 1; // we added Timestamp
+        columns += 1; 
         hasTimestamp = true;
     }
 
     var passRate = records > 0 ? (double)passCount * 100.0 / records : 0.0;
 
-    // Index the final (augmented or original) path for the session
     fileIndex[key] = finalPath;
 
     var result = new
@@ -158,16 +174,122 @@ app.MapPost("/upload-dataset", async (HttpRequest request) =>
     return Results.Ok(result);
 });
 
-// (Optional) simple ping to verify server is running
+// Train endpoint
+app.MapPost("/train-model", async (HttpContext ctx, TrainRequest req) =>
+{
+    if (string.IsNullOrWhiteSpace(req.fileKey))
+        return Results.BadRequest(new { message = "fileKey is required." });
+
+    if (!fileIndex.TryGetValue(req.fileKey, out var csvPath) || !System.IO.File.Exists(csvPath))
+        return Results.BadRequest(new { message = "Unknown or expired fileKey." });
+
+    // Basic pre-validation to avoid cryptic Python errors
+    static bool LooksLikeDate(string? s) => !string.IsNullOrWhiteSpace(s) && s!.Length >= 19 && s[4] == '-' && s[7] == '-' && s[10] == ' ';
+    if (!LooksLikeDate(req.trainStart) || !LooksLikeDate(req.trainEnd) ||
+        !LooksLikeDate(req.testStart)  || !LooksLikeDate(req.testEnd))
+        return Results.BadRequest(new { message = "Dates must be 'yyyy-MM-dd HH:mm:ss'." });
+
+    var scriptFull = Path.GetFullPath(trainingScript); 
+    if (!System.IO.File.Exists(scriptFull))
+        return Results.Problem($"training.py not found at {scriptFull}", statusCode: 500);
+
+    var psi = new ProcessStartInfo
+    {
+        FileName = pyExe,                      
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError  = true,
+        CreateNoWindow = true,
+        WorkingDirectory = Path.GetDirectoryName(scriptFull)!,
+    };
+    psi.Environment["PYTHONUNBUFFERED"] = "1";
+
+    psi.ArgumentList.Add(scriptFull);
+    psi.ArgumentList.Add("--csv");         psi.ArgumentList.Add(csvPath);
+    psi.ArgumentList.Add("--train-start"); psi.ArgumentList.Add(req.trainStart);
+    psi.ArgumentList.Add("--train-end");   psi.ArgumentList.Add(req.trainEnd);
+    psi.ArgumentList.Add("--test-start");  psi.ArgumentList.Add(req.testStart);
+    psi.ArgumentList.Add("--test-end");    psi.ArgumentList.Add(req.testEnd);
+
+    try
+    {
+        using var proc = Process.Start(psi);
+        if (proc is null)
+            return Results.Problem($"Failed to start '{pyExe}'.", statusCode: 500);
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted);
+        cts.CancelAfter(TimeSpan.FromMinutes(30)); // safety timeout
+
+        Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+        Task<string> stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+        await Task.WhenAll(proc.WaitForExitAsync(cts.Token), stdoutTask, stderrTask);
+
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+
+        if (proc.ExitCode != 0)
+        {
+            return Results.Json(new
+            {
+                message = $"Training failed (exit={proc.ExitCode}).",
+                script  = scriptFull,
+                pyExe,
+                stderr,
+                stdout
+            }, statusCode: 500);
+        }
+
+        return Results.Content(stdout, "application/json");
+    }
+    catch (System.ComponentModel.Win32Exception ex)
+    {
+        return Results.Json(new
+        {
+            message = $"Unable to start '{pyExe}'. Is Python installed and on PATH?",
+            pyExe,
+            error = ex.Message
+        }, statusCode: 500);
+    }
+    catch (OperationCanceledException)
+    {
+        try { Process.GetProcessesByName(pyExe).ToList().ForEach(p => { try { p.Kill(true); } catch { } }); } catch { }
+        return Results.Json(new { message = "Training timed out." }, statusCode: 500);
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { message = "Unhandled server error.", error = ex.ToString() }, statusCode: 500);
+    }
+});
+
+
 app.MapGet("/", () => Results.Ok("MiniML API running."));
+
+app.MapGet("/_diag/python", () =>
+{
+    static (int code, string so, string se) Run(string exe, params string[] args) {
+        var psi = new ProcessStartInfo { FileName = exe, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+        using var p = Process.Start(psi)!;
+        var so = p.StandardOutput.ReadToEnd();
+        var se = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        return (p.ExitCode, so, se);
+    }
+
+    var ver = Run(pyExe, "--version");
+    var imp = Run(pyExe, "-c", "import json,sys; import pandas,sklearn; print(json.dumps({'ok':True,'pandas':pandas.__version__,'sklearn':sklearn.__version__}))");
+    return Results.Ok(new {
+        pyExe,
+        version_exit = ver.code, version_out = ver.so, version_err = ver.se,
+        import_exit = imp.code, import_out = imp.so, import_err = imp.se
+    });
+});
 
 app.Run();
 
 
-// -------- Helpers --------
 static string[] SplitCsv(string line)
 {
-    // Minimal CSV splitter supporting quotes and commas inside quotes
     var fields = new List<string>();
     var sb = new StringBuilder();
     bool inQuotes = false;
