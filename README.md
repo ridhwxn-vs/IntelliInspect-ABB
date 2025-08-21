@@ -1,4 +1,4 @@
-# IntelliInspect — Monorepo README
+# IntelliInspect — README
 
 This repo contains **two apps that ship together**:
 
