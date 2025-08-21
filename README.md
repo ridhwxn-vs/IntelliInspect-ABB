@@ -87,7 +87,7 @@ xgboost>=1.7,<2.0
 
 ---
 
-## 5) Backend: point the API to your Python
+## 5) Backend: point the API to your Python (If Necessary, (Already Done in code))
 
 Create/update **`appsettings.Development.json`** in `IntelliInspect.Api/`:
 
