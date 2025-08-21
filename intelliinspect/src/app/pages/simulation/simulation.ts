@@ -196,7 +196,7 @@ export class SimulationComponent {
         this.donutChart.data.datasets[0].data = [this.pass, this.fail];
         this.donutChart.update();
       }
-    }, 500);
+    }, 100);
   }
 
   private reset() {
